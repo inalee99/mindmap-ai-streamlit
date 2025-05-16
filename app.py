@@ -1,5 +1,5 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 import networkx as nx
 import matplotlib.pyplot as plt
 import io
@@ -7,7 +7,7 @@ from PIL import Image
 import json
 
 # === 設定 OpenAI API Key ===
-openai.api_key = st.secrets["OPENAI_API_KEY"]  # 你可以在 Streamlit Cloud 的 Secrets 設定中加上 OPENAI_API_KEY
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 st.set_page_config(page_title="AI 心智圖產生器", layout="wide")
 st.title("🧠 AI 輔助心智圖學習系統")
@@ -24,7 +24,7 @@ if st.button("🔍 產生心智圖"):
         with st.spinner("AI 正在分析文章結構與主題，請稍候..."):
             prompt = f"請將以下文章內容萃取成心智圖的 JSON 結構格式，格式為：{{'主題': ['子主題1', '子主題2', ...]}}\n文章：{article}"
             try:
-                response = openai.ChatCompletion.create(
+                response = client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
                         {"role": "user", "content": prompt}
