@@ -1,7 +1,6 @@
 streamlit
 keybert
-spacy
+sentence-transformers
+scikit-learn
 networkx
 matplotlib
-scikit-learn
-sentence-transformers
