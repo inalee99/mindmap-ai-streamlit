@@ -1,13 +1,13 @@
 import streamlit as st
 from keybert import KeyBERT
-import spacy
+from sentence_transformers import SentenceTransformer
 import networkx as nx
 import matplotlib.pyplot as plt
 import json
 
-# === 載入 spaCy 模型與 KeyBERT ===
-nlp = spacy.load("zh_core_web_sm")
-kw_model = KeyBERT()
+# === 初始化 KeyBERT 模型（多語言支援，包括中文） ===
+model = SentenceTransformer('distiluse-base-multilingual-cased-v1')
+kw_model = KeyBERT(model)
 
 st.set_page_config(page_title="免費 AI 心智圖產生器", layout="wide")
 st.title("🧠 免費 AI 輔助心智圖教學系統")
@@ -24,7 +24,7 @@ if st.button("🔍 萃取主題並產生心智圖"):
         with st.spinner("AI 正在萃取關鍵主題並建立心智圖..."):
             try:
                 # 使用 KeyBERT 萃取主題詞
-                keywords = kw_model.extract_keywords(article, keyphrase_ngram_range=(1, 2), stop_words='english', top_n=6)
+                keywords = kw_model.extract_keywords(article, keyphrase_ngram_range=(1, 2), stop_words=None, top_n=6)
                 main_topic = keywords[0][0] if keywords else "主題"
                 sub_topics = [kw[0] for kw in keywords[1:]]
 
