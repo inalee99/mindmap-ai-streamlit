@@ -1,4 +1,7 @@
 streamlit
-openai
+keybert
+spacy
 networkx
 matplotlib
+scikit-learn
+sentence-transformers
