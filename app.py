@@ -1,61 +1,51 @@
 import streamlit as st
-from openai import OpenAI
+from keybert import KeyBERT
+import spacy
 import networkx as nx
 import matplotlib.pyplot as plt
-import io
-from PIL import Image
 import json
 
-# === 設定 OpenAI API Key ===
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# === 載入 spaCy 模型與 KeyBERT ===
+nlp = spacy.load("zh_core_web_sm")
+kw_model = KeyBERT()
 
-st.set_page_config(page_title="AI 心智圖產生器", layout="wide")
-st.title("🧠 AI 輔助心智圖學習系統")
+st.set_page_config(page_title="免費 AI 心智圖產生器", layout="wide")
+st.title("🧠 免費 AI 輔助心智圖教學系統")
 
 # === 使用者輸入文章 ===
-st.subheader("步驟一：請輸入一段文章，AI 將幫你生成心智圖")
+st.subheader("步驟一：請輸入一段文章，系統將幫你找出主題與子概念")
 article = st.text_area("貼上文章內容", height=250)
 
-# === 按下按鈕觸發 GPT 呼叫 ===
-if st.button("🔍 產生心智圖"):
+# === 產生心智圖 ===
+if st.button("🔍 萃取主題並產生心智圖"):
     if not article:
         st.warning("請先輸入文章內容！")
     else:
-        with st.spinner("AI 正在分析文章結構與主題，請稍候..."):
-            prompt = f"請將以下文章內容萃取成心智圖的 JSON 結構格式，格式為：{{'主題': ['子主題1', '子主題2', ...]}}\n文章：{article}"
+        with st.spinner("AI 正在萃取關鍵主題並建立心智圖..."):
             try:
-                response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0.5,
-                    max_tokens=1000
-                )
-                raw_output = response.choices[0].message.content
-                st.subheader("AI 回傳的心智圖結構 (JSON)")
-                st.code(raw_output, language="json")
+                # 使用 KeyBERT 萃取主題詞
+                keywords = kw_model.extract_keywords(article, keyphrase_ngram_range=(1, 2), stop_words='english', top_n=6)
+                main_topic = keywords[0][0] if keywords else "主題"
+                sub_topics = [kw[0] for kw in keywords[1:]]
 
-                # 嘗試解析 JSON 結構
-                try:
-                    structure = json.loads(raw_output)
+                # 組成結構
+                structure = {main_topic: sub_topics}
+                st.subheader("系統產出的心智圖資料結構 (JSON)")
+                st.code(json.dumps(structure, ensure_ascii=False, indent=2), language="json")
 
-                    # === 畫心智圖 ===
-                    G = nx.DiGraph()
-                    for main, subs in structure.items():
-                        G.add_node(main)
-                        for sub in subs:
-                            G.add_node(sub)
-                            G.add_edge(main, sub)
+                # 畫心智圖
+                G = nx.DiGraph()
+                for main, subs in structure.items():
+                    G.add_node(main)
+                    for sub in subs:
+                        G.add_node(sub)
+                        G.add_edge(main, sub)
 
-                    pos = nx.spring_layout(G)
-                    fig, ax = plt.subplots(figsize=(10, 6))
-                    nx.draw(G, pos, with_labels=True, node_size=2000, node_color="skyblue", font_size=12, font_weight="bold", edge_color="gray", ax=ax)
-                    st.subheader("🧠 自動生成的心智圖")
-                    st.pyplot(fig)
-
-                except json.JSONDecodeError:
-                    st.error("⚠️ AI 回傳的 JSON 格式有誤，請嘗試重新生成。")
+                pos = nx.spring_layout(G)
+                fig, ax = plt.subplots(figsize=(10, 6))
+                nx.draw(G, pos, with_labels=True, node_size=2000, node_color="lightgreen", font_size=12, font_weight="bold", edge_color="gray", ax=ax)
+                st.subheader("🧠 自動生成的心智圖")
+                st.pyplot(fig)
 
             except Exception as e:
                 st.error(f"⚠️ 發生錯誤：{e}")
